@@ -1,0 +1,179 @@
+1. Descripción General de la Aplicación
+La aplicación To-Do List permite a los usuarios gestionar sus tareas diarias de manera eficiente. Las funcionalidades básicas incluyen:
+
+Agregar Tareas: Los usuarios pueden añadir nuevas tareas a la lista.
+Marcar como Completadas: Las tareas pueden ser marcadas como completadas.
+Eliminar Tareas: Posibilidad de eliminar tareas de la lista.
+Filtrar Tareas: Ver todas, solo las completadas o las pendientes.
+Persistencia de Datos: Guardar las tareas en el almacenamiento local para mantener la lista entre sesiones.
+2. Estructura de Componentes
+La aplicación se divide en varios componentes funcionales para facilitar su mantenimiento y escalabilidad. A continuación, se describen los componentes principales:
+
+a. App
+Descripción: Componente raíz de la aplicación.
+Responsabilidades:
+Configurar el ruteo de la aplicación.
+Mantener el estado global de las tareas.
+Proveer context o pasar props a los componentes hijos según sea necesario.
+b. Header
+Descripción: Componente de encabezado que muestra el título de la aplicación.
+Responsabilidades:
+Mostrar el nombre de la aplicación.
+Opcionalmente, incluir navegación si hay múltiples vistas.
+c. AddTodo
+Descripción: Componente que contiene el formulario para agregar nuevas tareas.
+Responsabilidades:
+Capturar la entrada del usuario.
+Validar y enviar la nueva tarea al estado global.
+d. TodoList
+Descripción: Componente que lista todas las tareas.
+Responsabilidades:
+Recibir la lista de tareas como props.
+Filtrar las tareas según la ruta actual (todas, completadas, pendientes).
+Renderizar una lista de componentes TodoItem.
+e. TodoItem
+Descripción: Componente que representa una tarea individual.
+Responsabilidades:
+Mostrar el texto de la tarea.
+Permitir marcar la tarea como completada.
+Permitir eliminar la tarea.
+f. Footer / Filters
+Descripción: Componente que contiene los enlaces para filtrar las tareas.
+Responsabilidades:
+Proveer enlaces de navegación para filtrar por "Todas", "Completadas" y "Pendientes".
+Indicar cuál filtro está activo actualmente.
+3. Manejo del Ruteo
+Para gestionar el ruteo en la aplicación, se utiliza React Router. El ruteo permite navegar entre diferentes vistas sin recargar la página, mejorando la experiencia del usuario.
+
+a. Configuración de Rutas
+En el componente App, se configura el BrowserRouter y se definen las rutas principales:
+
+jsx
+Copiar código
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import TodoList from './components/TodoList';
+import AddTodo from './components/AddTodo';
+import Header from './components/Header';
+import Footer from './components/Footer';
+
+function App() {
+  return (
+    <Router>
+      <Header />
+      <AddTodo />
+      <Routes>
+        <Route path="/" element={<TodoList filter="all" />} />
+        <Route path="/completed" element={<TodoList filter="completed" />} />
+        <Route path="/pending" element={<TodoList filter="pending" />} />
+      </Routes>
+      <Footer />
+    </Router>
+  );
+}
+
+export default App;
+b. Enlaces de Navegación
+En el componente Footer o Filters, se utilizan los componentes Link o NavLink de React Router para navegar entre las diferentes rutas:
+
+jsx
+Copiar código
+import { NavLink } from 'react-router-dom';
+
+function Footer() {
+  return (
+    <nav>
+      <NavLink to="/" end>Todas</NavLink>
+      <NavLink to="/completed">Completadas</NavLink>
+      <NavLink to="/pending">Pendientes</NavLink>
+    </nav>
+  );
+}
+
+export default Footer;
+c. Filtrado de Tareas
+El componente TodoList recibe una prop filter que determina qué tareas mostrar:
+
+jsx
+Copiar código
+function TodoList({ filter }) {
+  const [todos, setTodos] = useState([...]); // Estado global de tareas
+
+  const filteredTodos = todos.filter(todo => {
+    if (filter === 'completed') return todo.completed;
+    if (filter === 'pending') return !todo.completed;
+    return true; // 'all'
+  });
+
+  return (
+    <ul>
+      {filteredTodos.map(todo => (
+        <TodoItem key={todo.id} todo={todo} />
+      ))}
+    </ul>
+  );
+}
+4. Manejo del Estado
+Para una aplicación sencilla, el estado puede ser manejado directamente en el componente App y pasado como props a los componentes hijos. Sin embargo, para una mejor gestión y escalabilidad, se puede utilizar Context API o una librería de manejo de estado como Redux.
+
+a. Uso de useState en App
+jsx
+Copiar código
+function App() {
+  const [todos, setTodos] = useState([]);
+
+  const addTodo = (text) => {
+    setTodos([...todos, { id: Date.now(), text, completed: false }]);
+  };
+
+  const toggleComplete = (id) => {
+    setTodos(todos.map(todo => 
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    ));
+  };
+
+  const deleteTodo = (id) => {
+    setTodos(todos.filter(todo => todo.id !== id));
+  };
+
+  return (
+    // Pasar addTodo, toggleComplete, deleteTodo a los componentes correspondientes
+  );
+}
+b. Persistencia con Local Storage
+Para mantener las tareas entre sesiones, se puede sincronizar el estado con el Local Storage:
+
+jsx
+Copiar código
+useEffect(() => {
+  const storedTodos = JSON.parse(localStorage.getItem('todos'));
+  if (storedTodos) setTodos(storedTodos);
+}, []);
+
+useEffect(() => {
+  localStorage.setItem('todos', JSON.stringify(todos));
+}, [todos]);
+5. Flujo de Datos
+Agregar una Tarea:
+
+El usuario ingresa el texto en el componente AddTodo.
+Al enviar, se llama a la función addTodo en App para actualizar el estado.
+La lista de tareas se actualiza y se renderiza en TodoList.
+Marcar como Completada:
+
+El usuario hace clic en una tarea en TodoItem.
+Se llama a toggleComplete para actualizar el estado de la tarea.
+TodoList filtra y muestra las tareas según el filtro activo.
+Eliminar una Tarea:
+
+El usuario hace clic en el botón de eliminar en TodoItem.
+Se llama a deleteTodo para remover la tarea del estado.
+La lista de tareas se actualiza en TodoList.
+Filtrar Tareas:
+
+El usuario selecciona un filtro en Footer.
+La ruta cambia utilizando React Router, lo que actualiza la prop filter en TodoList.
+TodoList renderiza las tareas según el filtro seleccionado.
+6. Conclusiones
+La aplicación To-Do List en React es un excelente proyecto para comprender los conceptos básicos de React, como la composición de componentes, el manejo del estado y el ruteo. Al descomponer la aplicación en componentes funcionales y manejar el ruteo con React Router, se logra una estructura limpia y mantenible. Además, la incorporación de la persistencia de datos mejora la experiencia del usuario al mantener sus tareas entre sesiones.
+
+Para expandir la aplicación, se podrían añadir características adicionales como autenticación de usuarios, sincronización con una base de datos en la nube, integración con APIs externas, entre otros.
