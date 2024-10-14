@@ -1,7 +1,7 @@
 ## Pasos para levantar proyecto:
 1- Clonar repositorio con el comando 'git clone' 
 
-2- Crear .env en la carpeta backend y agregar la api key de OpenAI en una variable llamada OPENAI_API_KEY
+2- Crear .env en el root del proyecto y agregar la api key de OpenAI en una variable llamada OPENAI_API_KEY
 
 3- Instalar dependencias con el comando 'npm install'
 
