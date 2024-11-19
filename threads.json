@@ -1,0 +1,62 @@
+[
+  {
+    "threadId": "thread_7QmxyVGe6MWYtMmqZkzS5wNW",
+    "timestamp": "2024-11-19T11:52:16.884Z",
+    "userMessage": "cuanto es 2+2?",
+    "assistantResponse": "La suma de 2 + 2 es 4."
+  },
+  {
+    "threadId": "thread_WB1JCA6i5GwYJ2S7iB8XwHLf",
+    "timestamp": "2024-11-19T14:47:25.268Z",
+    "userMessage": "Cuanto es 3 + 3?",
+    "assistantResponse": "La respuesta a la pregunta \"¿Cuánto es 3 + 3?\" es 6."
+  },
+  {
+    "threadId": "thread_7QTIdbDnYJYH231danupCubv",
+    "timestamp": "2024-11-19T15:24:45.498Z",
+    "userMessage": "Hola chat, cuanto es 3+3?\n",
+    "assistantResponse": "Hola, el resultado de 3+3 es 6."
+  },
+  {
+    "threadId": "thread_ySTmbraER2wRX243VI6ZGUU8",
+    "timestamp": "2024-11-19T15:25:08.120Z",
+    "userMessage": "chat, cuanto es 2+2?",
+    "assistantResponse": "El resultado de la suma 2 + 2 es 4."
+  },
+  {
+    "threadId": "thread_fX35mjCnbuU5tEwxt41BT1Db",
+    "timestamp": "2024-11-19T15:25:29.806Z",
+    "userMessage": "chat, cuanto es 2+2?\n",
+    "assistantResponse": "La respuesta a la pregunta \"¿cuánto es 2+2?\" es 4."
+  },
+  {
+    "threadId": "thread_oYaVHPLCXvn528oRjEdGPZWB",
+    "timestamp": "2024-11-19T15:26:57.425Z",
+    "userMessage": "chat, cuanto es 2+2?\n",
+    "assistantResponse": "El resultado de 2+2 es 4."
+  },
+  {
+    "threadId": "thread_oLfbS9UebvxoUSn3k9DfCN9U",
+    "timestamp": "2024-11-19T15:29:19.180Z",
+    "userMessage": "chat, cuanto es 2+2?\n",
+    "assistantResponse": "La respuesta a \"¿cuánto es 2+2?\" es 4. \n\nSi tienes más preguntas sobre el proyecto de la aplicación To-Do List o necesitas ayuda para desarrollar nuevas funcionalidades, estaré encantado de ayudarte."
+  },
+  {
+    "threadId": "thread_WuUFcn3rfqTkG0NGBNLxDuls",
+    "timestamp": "2024-11-19T15:31:15.015Z",
+    "userMessage": "chat, cuanto es 2+2?\n",
+    "assistantResponse": "El resultado de \\(2 + 2\\) es 4."
+  },
+  {
+    "threadId": "thread_pZTL4u4FVMkOZEDsk6s2hy8p",
+    "timestamp": "2024-11-19T15:34:26.880Z",
+    "userMessage": "Cuanto es 2+2?",
+    "assistantResponse": "La respuesta a la pregunta matemática \"¿Cuánto es 2+2?\" es 4."
+  },
+  {
+    "threadId": "thread_aIOaQCVA03VQEVTGTSPnkrSf",
+    "timestamp": "2024-11-19T15:35:48.217Z",
+    "userMessage": "chat, cuanto es 2+2?\n",
+    "assistantResponse": "La suma de 2 + 2 es 4."
+  }
+]

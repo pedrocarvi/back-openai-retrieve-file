@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  threads   Thread[] // One-to-many relationship with Thread
+}
+
+model Thread {
+  id                Int      @id @default(autoincrement())
+  threadId          String   // ID from OpenAI
+  userMessage       String   // User's message
+  assistantResponse String   // Assistant's response
+  createdAt         DateTime @default(now())
+  userId            Int
+  user              User     @relation(fields: [userId], references: [id]) // Relation to User
+}
+
+
+
+
+
