@@ -13,20 +13,23 @@ model User {
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
+  chats     Chat[]   // One-to-many relationship with Chat
+}
+
+model Chat {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  name      String?  // Optional name for the chat session
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id]) // Relation to User
   threads   Thread[] // One-to-many relationship with Thread
 }
 
 model Thread {
   id                Int      @id @default(autoincrement())
-  threadId          String   // ID from OpenAI
   userMessage       String   // User's message
   assistantResponse String   // Assistant's response
   createdAt         DateTime @default(now())
-  userId            Int
-  user              User     @relation(fields: [userId], references: [id]) // Relation to User
+  chatId            Int
+  chat              Chat     @relation(fields: [chatId], references: [id]) // Relation to Chat
 }
-
-
-
-
-

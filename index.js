@@ -15,17 +15,21 @@ const prisma = new PrismaClient();
 const cors = require("cors");
 const corsOptions = {
   origin: '*',
-  methods: ['GET', 'POST'], 
+  methods: ['GET', 'POST', 'DELETE', 'PUT'], 
   credentials: true, 
 };
 app.use(cors(corsOptions));
-
 app.use(bodyParser.json());
+
+app.get("/", async (req,res) => {
+  res.send("API OpenAi");
+})
 
 // Inicializo OpenAI
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Auth
+// Jwt
 const SECRET_KEY = process.env.SECRET_KEY;
 
 // Registro de usuario
@@ -49,10 +53,6 @@ app.post("/register", async (req, res) => {
     res.status(500).json({ error: "Error registrando el usuario", details: error.message });
   }
 });
-
-app.get("/", async (req,res) => {
-  res.send("Api open ai");
-})
 
 // Login de usuario
 app.post("/login", async (req, res) => {
@@ -93,6 +93,7 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+// OpenAI
 // Trae el asistente o crea uno en base a si existe o no el archivo assistant.json
 async function getOrCreateAssistant() {
   const assistantFilePath = "./assistant.json";
@@ -105,7 +106,7 @@ async function getOrCreateAssistant() {
     // Si no existe, crea el asistente
     const assistantConfig = {
       "name": "Code Project Assistant",
-      "instructions": "You are a coding expert and you know everything about the project file that you retrieve. You have analyzed all the project with the information that we gave you in the file. You know how the project manages the environments, routes, api calls, and everything about the project. You are ready to build new components in the place that we tell you and know exactly how to write the code based from the project code standard. Only respond with code as plain text without code block syntax around it. ",
+      "instructions": "Eres un experto en codificación y lo sabes todo sobre el archivo del proyecto que recuperas. Has analizado todo el proyecto con la información que te dimos en el archivo. Usted sabe cómo el proyecto gestiona los entornos, rutas, llamadas api, y todo sobre el proyecto. Estás listo para construir nuevos componentes en el lugar que te indicamos y sabes exactamente cómo escribir el código basado en el estándar de código del proyecto.",
       "tools": [{ "type": "code_interpreter" }, { "type": "file_search" }],
       "model": "gpt-4-1106-preview"
     };
@@ -120,168 +121,54 @@ async function getOrCreateAssistant() {
       JSON.stringify(assistantDetails, null, 2)
     );
   }
-
+  
   return assistantDetails;
 }
 
-// Guarda el thread del usuario
-// async function saveThread(threadId, userMessage, assistantResponse) {
-//   const threadsFilePath = "./threads.json";
-//   let threadsData = [];
-
-//   // Read existing threads if the file already exists
-//   try {
-//     const data = await fsPromises.readFile(threadsFilePath, "utf8");
-//     threadsData = JSON.parse(data);
-//   } catch (error) {
-//     // If the file doesn't exist, initialize an empty array
-//     if (error.code !== 'ENOENT') throw error;
-//   }
-
-//   // Define the new conversation
-//   const newConversation = {
-//     threadId,
-//     timestamp: new Date().toISOString(),
-//     userMessage,
-//     assistantResponse
-//   };
-
-//   // Append the new conversation
-//   threadsData.push(newConversation);
-
-//   // Save back to the file
-//   await fsPromises.writeFile(
-//     threadsFilePath,
-//     JSON.stringify(threadsData, null, 2)
-//   );
-// }
-
-async function saveThread(userId, threadId, userMessage, assistantResponse) {
-  try {
-    await prisma.thread.create({
-      data: {
-        threadId,
-        userMessage,
-        assistantResponse,
-        userId
-      }
-    });
-    console.log("Thread saved successfully");
-  } catch (error) {
-    console.error("Error saving thread:", error);
-  }
-}
-
-// Ruta para manejar preguntas y usar OpenAI
-// app.post("/chat", authenticateToken, async (req, res) => {
-//   try {
-
-//     console.log("Usando endpoint /chat");
-    
-//     const { question } = req.body;
-//     const assistantDetails = await getOrCreateAssistant();
-//     console.log(assistantDetails);
-
-//     // Lee el archivo 
-//     const documentPath = "./analisis-to-do-list.txt";
-//     let documentContent;
-//     try {
-//       documentContent = await fsPromises.readFile(documentPath, "utf8");
-//     } catch (error) {
-//       return res.status(500).send("Error leyendo el documento.");
-//     }
-
-//     // Combina el contenido del documento con la pregunta del usuario
-//     const fullPrompt = `Aquí está un documento con información importante del proyecto:\n\n${documentContent}\n\n. Ahora, con base en esto, responde la siguiente pregunta: ${question}`;
-
-//     // Crea un nuevo hilo usando el assistantId
-//     const thread = await openai.beta.threads.create();
-
-//     // Envía el prompt al hilo
-//     await openai.beta.threads.messages.create(thread.id, {
-//       role: "user",
-//       content: fullPrompt,
-//     });
-
-//     // Crea un run para el asistente
-//     const run = await openai.beta.threads.runs.create(thread.id, {
-//       assistant_id: assistantDetails.assistantId,
-//     });
-
-//     // Verifica el estado del run
-//     let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-
-//     // Mecanismo de polling para chequear si se completó
-//     while (runStatus.status !== "completed") {
-//       await new Promise((resolve) => setTimeout(resolve, 1000));
-//       runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-//     }
-
-//     // Obtiene el último mensaje del asistente
-//     const messages = await openai.beta.threads.messages.list(thread.id);
-//     const lastMessageForRun = messages.data
-//       .filter(
-//         (message) => message.run_id === run.id && message.role === "assistant"
-//       )
-//       .pop();
-
-//     if (lastMessageForRun) {
-//       // Save the conversation thread
-//       await saveThread(thread.id, question, lastMessageForRun.content[0].text.value);
-//       res.json({ response: lastMessageForRun.content[0].text.value });
-//     } else {
-//       res.status(500).send("No se recibió respuesta del asistente.");
-//     }
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).send("Ocurrió un error");
-//   }
-// });
-
-// Ruta para manejar preguntas y usar OpenAI
+// Configuración del chat y threads con OpenAi
 app.post("/chat", authenticateToken, async (req, res) => {
   try {
-    const { question } = req.body;
-    const { userId } = req; // Get userId from authenticated request
+    const { question, chatId } = req.body; 
+    const { userId } = req;
 
     const assistantDetails = await getOrCreateAssistant();
 
-    // Lee el archivo
+    // Read the document
     const documentPath = "./analisis-to-do-list.txt";
     let documentContent;
     try {
       documentContent = await fsPromises.readFile(documentPath, "utf8");
     } catch (error) {
-      return res.status(500).send("Error leyendo el documento.");
+      return res.status(500).send("Error reading document.");
     }
 
-    // Combina el contenido del documento con la pregunta del usuario
+    // Combine the document content with the user's question
     const fullPrompt = `Aquí está un documento con información importante del proyecto:\n\n${documentContent}\n\n. Ahora, con base en esto, responde la siguiente pregunta: ${question}`;
 
-    // Crea un nuevo hilo usando el assistantId
+    // Create a new thread using the assistantId
     const thread = await openai.beta.threads.create();
 
-    // Envía el prompt al hilo
+    // Send the prompt to the thread
     await openai.beta.threads.messages.create(thread.id, {
       role: "user",
       content: fullPrompt,
     });
 
-    // Crea un run para el asistente
+    // Create a run for the assistant
     const run = await openai.beta.threads.runs.create(thread.id, {
       assistant_id: assistantDetails.assistantId,
     });
 
-    // Verifica el estado del run
+    // Check the status of the run
     let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
 
-    // Mecanismo de polling para chequear si se completó
+    // Polling mechanism to check completion
     while (runStatus.status !== "completed") {
       await new Promise((resolve) => setTimeout(resolve, 1000));
       runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
     }
 
-    // Obtiene el último mensaje del asistente
+    // Get the last message from the assistant
     const messages = await openai.beta.threads.messages.list(thread.id);
     const lastMessageForRun = messages.data
       .filter(
@@ -290,17 +177,35 @@ app.post("/chat", authenticateToken, async (req, res) => {
       .pop();
 
     if (lastMessageForRun) {
-      // Save the conversation thread to the database
-      await saveThread(userId, thread.id, question, lastMessageForRun.content[0].text.value);
+      // Save the conversation thread to the specified chat
+      await saveMessageToChat(chatId, question, lastMessageForRun.content[0].text.value);
       res.json({ response: lastMessageForRun.content[0].text.value });
     } else {
-      res.status(500).send("No se recibió respuesta del asistente.");
+      res.status(500).send("No response received from the assistant.");
     }
   } catch (error) {
     console.error(error);
-    res.status(500).send("Ocurrió un error");
+    res.status(500).send("An error occurred");
   }
 });
+
+// BD
+// Base de datos propia con los chats y threads dentro de los mismos
+async function saveMessageToChat(chatId, userMessage, assistantResponse) {
+  try {
+    await prisma.thread.create({
+      data: {
+        userMessage: userMessage,
+        assistantResponse: assistantResponse,
+        chatId: chatId,
+      },
+    });
+
+    console.log("Thread saved successfully");
+  } catch (error) {
+    console.error("Error saving thread:", error);
+  }
+}
 
 // Ruta para obtener los hilos de conversación de un usuario
 app.get("/threads", authenticateToken, async (req, res) => {
@@ -309,14 +214,91 @@ app.get("/threads", authenticateToken, async (req, res) => {
 
     // Consulta la base de datos para obtener los hilos del usuario
     const threads = await prisma.thread.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' }, // Order by creation date, newest first
+      where: { chat: { userId } },
+      orderBy: { createdAt: 'desc' },
     });
 
     res.json({ threads });
   } catch (error) {
     console.error("Error retrieving threads:", error);
     res.status(500).json({ error: "Error al obtener los hilos de conversación" });
+  }
+});
+
+// Crear/empieza un nuevo chat
+app.post('/chats', authenticateToken, async (req, res) => {
+  try {
+    const { userId } = req; 
+
+    // Create a new chat session for the user
+    const newChat = await prisma.chat.create({
+      data: {
+        userId: userId,
+        name: `Chat ${new Date().toLocaleString()}`,
+      },
+    });
+
+    res.json({ newChat });
+  } catch (error) {
+    console.error("Error creating new chat:", error);
+    res.status(500).json({ error: "Error al crear la nueva sesión de chat" });
+  }
+});
+
+// Obtiene todas las sesiones de chat de un usuario
+app.get("/chats", authenticateToken, async (req, res) => {
+  try {
+    const { userId } = req; // Obtén la userId del token autenticado
+
+    // Obtain all chat sessions
+    const chats = await prisma.chat.findMany({
+      where: { userId },
+      include: {
+        threads: true, // Include threads to see all the messages in each chat
+      },
+    });
+
+    res.json({ chats });
+  } catch (error) {
+    console.error("Error retrieving chats:", error);
+    res.status(500).json({ error: "Error al obtener las sesiones de chat" });
+  }
+});
+
+// Elimina chat
+app.delete("/chats/:chatId", authenticateToken, async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { userId } = req; // Get userId from authenticated request
+
+    // Ensure the chat belongs to the authenticated user
+    const chat = await prisma.chat.findUnique({
+      where: {
+        id: parseInt(chatId),
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!chat || chat.userId !== userId) {
+      return res.status(403).json({ error: "Acceso no autorizado al chat" });
+    }
+
+    // First, delete all threads associated with the chat
+    await prisma.thread.deleteMany({
+      where: { chatId: parseInt(chatId) },
+    });
+
+    // Then, delete the chat itself
+    await prisma.chat.delete({
+      where: { id: parseInt(chatId) },
+    });
+
+    res.json({ message: "Chat eliminado exitosamente" });
+  } catch (error) {
+    console.error("Error al eliminar el chat:", error);
+    res.status(500).json({ error: "Error al eliminar el chat" });
   }
 });
 
