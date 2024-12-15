@@ -191,6 +191,84 @@ app.post("/chat", authenticateToken, async (req, res) => {
   }
 });
 
+// Configuración del chat con OpenAI TTS
+app.post("/chat/audio", authenticateToken, async (req, res) => {
+  try {
+    const { question, chatId, saveThread, voice = "alloy" } = req.body;
+    const { userId } = req;
+
+    const assistantDetails = await getOrCreateAssistant();
+
+    // Leer el documento
+    const documentPath = "./analisis-to-do-list.txt";
+    let documentContent;
+    try {
+      documentContent = await fsPromises.readFile(documentPath, "utf8");
+    } catch (error) {
+      return res.status(500).send("Error reading document.");
+    }
+
+    // Combinar el contenido del documento con la pregunta del usuario
+    const fullPrompt = `Aquí está un documento con información importante del proyecto:\n\n${documentContent}\n\n. Ahora, con base en esto, responde la siguiente pregunta respondiendo lo mas corto que puedas: ${question}`;
+
+    // Crear un thread y obtener la respuesta
+    const thread = await openai.beta.threads.create();
+    await openai.beta.threads.messages.create(thread.id, {
+      role: "user",
+      content: fullPrompt,
+    });
+
+    const run = await openai.beta.threads.runs.create(thread.id, {
+      assistant_id: assistantDetails.assistantId,
+    });
+
+    let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+
+    // Polling para verificar si la respuesta está lista
+    while (runStatus.status !== "completed") {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+    }
+
+    const messages = await openai.beta.threads.messages.list(thread.id);
+    const lastMessageForRun = messages.data
+      .filter(
+        (message) => message.run_id === run.id && message.role === "assistant"
+      )
+      .pop();
+
+    if (!lastMessageForRun) {
+      return res.status(500).send("No response received from the assistant.");
+    }
+
+    const textResponse = lastMessageForRun.content[0].text.value;
+
+    // Generar el audio usando OpenAI TTS
+    const speechResponse = await openai.audio.speech.create({
+      model: "tts-1",
+      voice,
+      input: textResponse,
+    });
+
+    // Guardar el hilo si es necesario
+    if (saveThread) {
+      await saveMessageToChat(chatId, question, textResponse);
+    }
+
+    // Configurar la respuesta en audio (MP3)
+    res.set({
+      "Content-Type": "audio/mpeg",
+      "Content-Disposition": "inline; filename=response.mp3",
+    });
+
+    const audioBuffer = Buffer.from(await speechResponse.arrayBuffer());
+    res.send(audioBuffer);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("An error occurred");
+  }
+});
+
 // BD
 // Base de datos propia con los chats y threads dentro de los mismos
 async function saveMessageToChat(chatId, userMessage, assistantResponse) {
