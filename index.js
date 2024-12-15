@@ -128,7 +128,7 @@ async function getOrCreateAssistant() {
 // Configuración del chat y threads con OpenAi
 app.post("/chat", authenticateToken, async (req, res) => {
   try {
-    const { question, chatId } = req.body; 
+    const { question, chatId, saveThread } = req.body;
     const { userId } = req;
 
     const assistantDetails = await getOrCreateAssistant();
@@ -178,7 +178,9 @@ app.post("/chat", authenticateToken, async (req, res) => {
 
     if (lastMessageForRun) {
       // Save the conversation thread to the specified chat
-      await saveMessageToChat(chatId, question, lastMessageForRun.content[0].text.value);
+      if (saveThread) {
+        await saveMessageToChat(chatId, question, lastMessageForRun.content[0].text.value);
+      }
       res.json({ response: lastMessageForRun.content[0].text.value });
     } else {
       res.status(500).send("No response received from the assistant.");
