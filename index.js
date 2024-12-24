@@ -105,9 +105,13 @@ async function getOrCreateAssistant() {
   } catch (error) {
     // Si no existe, crea el asistente
     const assistantConfig = {
-      "name": "Code Project Assistant",
-      "instructions": "Eres un experto en codificación y lo sabes todo sobre el archivo del proyecto que recuperas. Has analizado todo el proyecto con la información que te dimos en el archivo. Usted sabe cómo el proyecto gestiona los entornos, rutas, llamadas api, y todo sobre el proyecto. Estás listo para construir nuevos componentes en el lugar que te indicamos y sabes exactamente cómo escribir el código basado en el estándar de código del proyecto.",
-      "tools": [{ "type": "code_interpreter" }, { "type": "file_search" }],
+      "name": "Asistente psicólogo",
+      "instructions": "Sos un experto en el area de la psicología y salud mental. Sabes todos los tipos de psicología, y te basas en ellos para ayudar al usuario a entender y resolver sus problemas. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar si o si que las personas se hagan daño a sí mismas.",
+      "tools": [
+        {
+          "type": "file_search"
+        }
+      ],      
       "model": "gpt-4-1106-preview"
     };
     console.log("Crea asistente?")
@@ -143,7 +147,7 @@ app.post("/chat", authenticateToken, async (req, res) => {
     }
 
     // Combine the document content with the user's question
-    const fullPrompt = `Aquí está un documento con información importante del proyecto:\n\n${documentContent}\n\n. Ahora, con base en esto, responde la siguiente pregunta: ${question}`;
+    const fullPrompt = `Sos un experto en el area de la psicología y salud mental. Sabes todos los tipos de psicología, y te basas en ellos para ayudar al usuario a entender y resolver sus problemas. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar si o si que las personas se hagan daño a sí mismas. Ahora, con base en esto, responde la siguiente pregunta: ${question}`;
 
     // Create a new thread using the assistantId
     const thread = await openai.beta.threads.create();
@@ -191,25 +195,92 @@ app.post("/chat", authenticateToken, async (req, res) => {
   }
 });
 
-// Configuración del chat con OpenAI TTS
 app.post("/chat/audio", authenticateToken, async (req, res) => {
   try {
     const { question, chatId, saveThread, voice = "alloy" } = req.body;
     const { userId } = req;
 
-    const assistantDetails = await getOrCreateAssistant();
-
-    // Leer el documento
-    const documentPath = "./analisis-to-do-list.txt";
-    let documentContent;
-    try {
-      documentContent = await fsPromises.readFile(documentPath, "utf8");
-    } catch (error) {
-      return res.status(500).send("Error reading document.");
+    if (!question || !chatId) {
+      return res.status(400).send("Invalid request body.");
     }
 
-    // Combinar el contenido del documento con la pregunta del usuario
-    const fullPrompt = `Aquí está un documento con información importante del proyecto:\n\n${documentContent}\n\n. Ahora, con base en esto, responde la siguiente pregunta respondiendo lo mas corto que puedas: ${question}`;
+    const assistantDetails = await getOrCreateAssistant();
+
+    const fullPrompt = `Sos un experto en el area de la psicología y salud mental. Sabes todos los tipos de psicología, y te basas en ellos para ayudar al usuario a entender y resolver sus problemas. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar si o si que las personas se hagan daño a sí mismas. Ahora responde: ${question}`;
+
+    const thread = await openai.beta.threads.create();
+    await openai.beta.threads.messages.create(thread.id, {
+      role: "user",
+      content: fullPrompt,
+    });
+
+    const run = await openai.beta.threads.runs.create(thread.id, {
+      assistant_id: assistantDetails.assistantId,
+    });
+
+    let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+
+    let attempts = 0;
+    const maxAttempts = 10;
+    while (runStatus.status !== "completed" && attempts < maxAttempts) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+      attempts++;
+    }
+    if (attempts >= maxAttempts) {
+      return res.status(500).send("The assistant did not respond in time.");
+    }
+
+    const messages = await openai.beta.threads.messages.list(thread.id);
+    const lastMessageForRun = messages.data
+      ?.filter((msg) => msg.run_id === run.id && msg.role === "assistant")
+      .pop();
+
+    if (!lastMessageForRun) {
+      return res.status(500).send("No response received from the assistant.");
+    }
+
+    const textResponse = lastMessageForRun.content[0]?.text?.value || "";
+    if (!textResponse) {
+      return res.status(500).send("Invalid text response for TTS.");
+    }
+
+    const speechResponse = await openai.audio.speech.create({
+      model: "tts-1",
+      voice,
+      input: textResponse,
+    });
+
+    if (!speechResponse || !speechResponse.arrayBuffer) {
+      return res.status(500).send("Failed to generate audio.");
+    }
+
+    const audioBuffer = Buffer.from(await speechResponse.arrayBuffer());
+
+    if (saveThread) {
+      await saveMessageToChat(chatId, question, textResponse);
+    }
+
+    res.set({
+      "Content-Type": "audio/mpeg",
+      "Content-Disposition": "inline; filename=response.mp3",
+    });
+    res.send(audioBuffer);
+  } catch (error) {
+    console.error("Error in /chat/audio endpoint:", error);
+    res.status(500).send("An error occurred");
+  }
+});
+
+
+// Chat audio elevenlabs
+// Configuración del chat con ElevenLabs TTS
+app.post("/chat/audio-eleven", authenticateToken, async (req, res) => {
+  try {
+    const { question, chatId, saveThread, voice = "JBFqnCBsd6RMkjVDRZzb" } = req.body;
+
+    // Crear un prompt directamente con la pregunta del usuario
+    const fullPrompt = `Sos un experto en el área de la psicología y salud mental. Sabes todos los tipos de psicología, y le vas a preguntar al usuario con qué tipo de psicología quiere hacer la terapia. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar sí o sí que las personas se hagan daño a sí mismas. Es MUY IMPORTANTE que respondas de una manera concisa. No respondas prolongadamente. Ahora, con base en esto, responde la siguiente pregunta: ${question}`;
 
     // Crear un thread y obtener la respuesta
     const thread = await openai.beta.threads.create();
@@ -219,7 +290,7 @@ app.post("/chat/audio", authenticateToken, async (req, res) => {
     });
 
     const run = await openai.beta.threads.runs.create(thread.id, {
-      assistant_id: assistantDetails.assistantId,
+      assistant_id: (await getOrCreateAssistant()).assistantId,
     });
 
     let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
@@ -243,31 +314,44 @@ app.post("/chat/audio", authenticateToken, async (req, res) => {
 
     const textResponse = lastMessageForRun.content[0].text.value;
 
-    // Generar el audio usando OpenAI TTS
-    const speechResponse = await openai.audio.speech.create({
-      model: "tts-1",
-      voice,
-      input: textResponse,
-    });
-
     // Guardar el hilo si es necesario
     if (saveThread) {
       await saveMessageToChat(chatId, question, textResponse);
     }
 
-    // Configurar la respuesta en audio (MP3)
+    // Usar ElevenLabs para generar el audio en tiempo real
+    const { ElevenLabsClient } = require("elevenlabs");
+    const client = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY });
+
     res.set({
       "Content-Type": "audio/mpeg",
-      "Content-Disposition": "inline; filename=response.mp3",
+      "Transfer-Encoding": "chunked",
     });
 
-    const audioBuffer = Buffer.from(await speechResponse.arrayBuffer());
-    res.send(audioBuffer);
+    const stream = await client.textToSpeech.convertAsStream(voice, {
+      output_format: "mp3_44100_128",
+      text: textResponse,
+      model_id: "eleven_multilingual_v2",
+    });
+
+    // Transmitir los datos de audio en tiempo real
+    stream.pipe(res);
+
+    stream.on("end", () => {
+      res.end();
+    });
+
+    stream.on("error", (error) => {
+      console.error("Error durante el streaming de audio:", error);
+      res.status(500).send("Error during audio streaming.");
+    });
   } catch (error) {
-    console.error(error);
+    console.error("Error al procesar audio:", error);
     res.status(500).send("An error occurred");
   }
 });
+
+
 
 // BD
 // Base de datos propia con los chats y threads dentro de los mismos
