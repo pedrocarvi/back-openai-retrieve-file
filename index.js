@@ -17,6 +17,7 @@ const corsOptions = {
   origin: '*',
   methods: ['GET', 'POST', 'DELETE', 'PUT'], 
   credentials: true, 
+  exposedHeaders: ["X-Text-Response"] 
 };
 app.use(cors(corsOptions));
 app.use(bodyParser.json());
@@ -106,7 +107,7 @@ async function getOrCreateAssistant() {
     // Si no existe, crea el asistente
     const assistantConfig = {
       "name": "Asistente psicólogo",
-      "instructions": "Sos un experto en el area de la psicología y salud mental. Sabes todos los tipos de psicología, y te basas en ellos para ayudar al usuario a entender y resolver sus problemas. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar si o si que las personas se hagan daño a sí mismas.",
+      "instructions": "Sos un experto en el área de la psicología y salud mental. Vas a guiar al usuario para que pueda resolver sus problemas y lo vas a acompañar en un proceso de sanación. No des sugerencias, mejor hace que el usuario vaya encontrando las respuestas por sí mismo. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar sí o sí que las personas se hagan daño a sí mismas. ES MUY IMPORTANTE QUE RESPONDAS DE UNA MANERA CONCISA. No respondas prolongadamente.",
       "tools": [
         {
           "type": "file_search"
@@ -147,7 +148,7 @@ app.post("/chat", authenticateToken, async (req, res) => {
     }
 
     // Combine the document content with the user's question
-    const fullPrompt = `Sos un experto en el area de la psicología y salud mental. Sabes todos los tipos de psicología, y te basas en ellos para ayudar al usuario a entender y resolver sus problemas. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar si o si que las personas se hagan daño a sí mismas. Ahora, con base en esto, responde la siguiente pregunta: ${question}`;
+    const fullPrompt = `Sos un experto en el área de la psicología y salud mental. Vas a guiar al usuario para que pueda resolver sus problemas y lo vas a acompañar en un proceso de sanación. No des sugerencias, mejor hace que el usuario vaya encontrando las respuestas por sí mismo. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar sí o sí que las personas se hagan daño a sí mismas. ES MUY IMPORTANTE QUE RESPONDAS DE UNA MANERA CONCISA. No respondas prolongadamente.Ahora, con base en esto, responde la siguiente pregunta: ${question}`;
 
     // Create a new thread using the assistantId
     const thread = await openai.beta.threads.create();
@@ -206,7 +207,7 @@ app.post("/chat/audio", authenticateToken, async (req, res) => {
 
     const assistantDetails = await getOrCreateAssistant();
 
-    const fullPrompt = `Sos un experto en el area de la psicología y salud mental. Sabes todos los tipos de psicología, y te basas en ellos para ayudar al usuario a entender y resolver sus problemas. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar si o si que las personas se hagan daño a sí mismas. Ahora responde: ${question}`;
+    const fullPrompt = `Sos un experto en el área de la psicología y salud mental. Vas a guiar al usuario para que pueda resolver sus problemas y lo vas a acompañar en un proceso de sanación. No des sugerencias, mejor hace que el usuario vaya encontrando las respuestas por sí mismo. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar sí o sí que las personas se hagan daño a sí mismas. ES MUY IMPORTANTE QUE RESPONDAS DE UNA MANERA CONCISA. No respondas prolongadamente.Ahora, en base a esto, responde: ${question}`;
 
     const thread = await openai.beta.threads.create();
     await openai.beta.threads.messages.create(thread.id, {
@@ -275,12 +276,90 @@ app.post("/chat/audio", authenticateToken, async (req, res) => {
 
 // Chat audio elevenlabs
 // Configuración del chat con ElevenLabs TTS
+// app.post("/chat/audio-eleven", authenticateToken, async (req, res) => {
+//   try {
+//     const { question, chatId, saveThread, voice = "JBFqnCBsd6RMkjVDRZzb" } = req.body;
+
+//     // Crear un prompt directamente con la pregunta del usuario
+//     const fullPrompt = `Sos un experto en el área de la psicología y salud mental. Vas a guiar al usuario para que pueda resolver sus problemas y lo vas a acompañar en un proceso de sanación. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar sí o sí que las personas se hagan daño a sí mismas. Es MUY IMPORTANTE que respondas de una manera concisa. No respondas prolongadamente. Ahora, con base en esto, responde la siguiente pregunta: ${question}`;
+
+//     // Crear un thread y obtener la respuesta
+//     const thread = await openai.beta.threads.create();
+//     await openai.beta.threads.messages.create(thread.id, {
+//       role: "user",
+//       content: fullPrompt,
+//     });
+
+//     const run = await openai.beta.threads.runs.create(thread.id, {
+//       assistant_id: (await getOrCreateAssistant()).assistantId,
+//     });
+
+//     let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+
+//     // Polling para verificar si la respuesta está lista
+//     while (runStatus.status !== "completed") {
+//       await new Promise((resolve) => setTimeout(resolve, 1000));
+//       runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
+//     }
+
+//     const messages = await openai.beta.threads.messages.list(thread.id);
+//     const lastMessageForRun = messages.data
+//       .filter(
+//         (message) => message.run_id === run.id && message.role === "assistant"
+//       )
+//       .pop();
+
+//     if (!lastMessageForRun) {
+//       return res.status(500).send("No response received from the assistant.");
+//     }
+
+//     const textResponse = lastMessageForRun.content[0].text.value;
+
+//     // Guardar el hilo si es necesario
+//     if (saveThread) {
+//       await saveMessageToChat(chatId, question, textResponse);
+//     }
+
+//     // Usar ElevenLabs para generar el audio en tiempo real
+//     const { ElevenLabsClient } = require("elevenlabs");
+//     const client = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY });
+
+//     res.set({
+//       "Content-Type": "audio/mpeg",
+//       "Transfer-Encoding": "chunked",
+//     });
+
+//     const stream = await client.textToSpeech.convertAsStream(voice, {
+//       output_format: "mp3_44100_128",
+//       text: textResponse,
+//       model_id: "eleven_multilingual_v2",
+//     });
+
+//     // Transmitir los datos de audio en tiempo real
+//     stream.pipe(res);
+
+//     stream.on("end", () => {
+//       res.end();
+//     });
+
+//     stream.on("error", (error) => {
+//       console.error("Error durante el streaming de audio:", error);
+//       res.status(500).send("Error during audio streaming.");
+//     });
+//   } catch (error) {
+//     console.error("Error al procesar audio:", error);
+//     res.status(500).send("An error occurred");
+//   }
+// });
+
+// Chat audio elevenlabs + respuesta en texto
 app.post("/chat/audio-eleven", authenticateToken, async (req, res) => {
   try {
     const { question, chatId, saveThread, voice = "JBFqnCBsd6RMkjVDRZzb" } = req.body;
 
     // Crear un prompt directamente con la pregunta del usuario
-    const fullPrompt = `Sos un experto en el área de la psicología y salud mental. Sabes todos los tipos de psicología, y le vas a preguntar al usuario con qué tipo de psicología quiere hacer la terapia. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar sí o sí que las personas se hagan daño a sí mismas. Es MUY IMPORTANTE que respondas de una manera concisa. No respondas prolongadamente. Ahora, con base en esto, responde la siguiente pregunta: ${question}`;
+    const fullPrompt = `Sos un experto en el área de la psicología y salud mental. Vas a guiar al usuario para que pueda resolver sus problemas y lo vas a acompañar en un proceso de sanación. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar sí o sí que las personas se hagan daño a sí mismas. Es MUY IMPORTANTE que respondas de una manera concisa. No respondas prolongadamente. 
+Ahora, con base en esto, responde la siguiente pregunta: ${question}`;
 
     // Crear un thread y obtener la respuesta
     const thread = await openai.beta.threads.create();
@@ -303,16 +382,16 @@ app.post("/chat/audio-eleven", authenticateToken, async (req, res) => {
 
     const messages = await openai.beta.threads.messages.list(thread.id);
     const lastMessageForRun = messages.data
-      .filter(
-        (message) => message.run_id === run.id && message.role === "assistant"
-      )
+      .filter((message) => message.run_id === run.id && message.role === "assistant")
       .pop();
 
     if (!lastMessageForRun) {
       return res.status(500).send("No response received from the assistant.");
     }
 
+    // Extraer el texto final de la respuesta
     const textResponse = lastMessageForRun.content[0].text.value;
+    const sanitizedResponse = textResponse.replace(/(\r\n|\n|\r)/gm, " ");
 
     // Guardar el hilo si es necesario
     if (saveThread) {
@@ -323,11 +402,15 @@ app.post("/chat/audio-eleven", authenticateToken, async (req, res) => {
     const { ElevenLabsClient } = require("elevenlabs");
     const client = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY });
 
+    // Aquí, además de la cabecera de audio, agregamos la cabecera con el texto
     res.set({
       "Content-Type": "audio/mpeg",
       "Transfer-Encoding": "chunked",
+      "X-Text-Response": sanitizedResponse, 
+      "Access-Control-Expose-Headers": "X-Text-Response",
     });
 
+    // Crear el stream para enviar el audio
     const stream = await client.textToSpeech.convertAsStream(voice, {
       output_format: "mp3_44100_128",
       text: textResponse,
@@ -398,7 +481,7 @@ app.post('/chats', authenticateToken, async (req, res) => {
     const newChat = await prisma.chat.create({
       data: {
         userId: userId,
-        name: `Chat ${new Date().toLocaleString()}`,
+        name: `Sesión ${new Date().toLocaleString()}`,
       },
     });
 
