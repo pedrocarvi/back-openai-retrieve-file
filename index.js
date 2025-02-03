@@ -29,7 +29,11 @@ app.get("/", async (req,res) => {
 // Inicializo OpenAI
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// ***********************************************************
+// ***********************************************************
 // Auth
+// ***********************************************************
+// ***********************************************************
 // Jwt
 const SECRET_KEY = process.env.SECRET_KEY;
 
@@ -94,7 +98,11 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+// ***********************************************************
+// ***********************************************************
 // OpenAI
+// ***********************************************************
+// ***********************************************************
 // Trae el asistente o crea uno en base a si existe o no el archivo assistant.json
 async function getOrCreateAssistant() {
   const assistantFilePath = "./assistant.json";
@@ -130,7 +138,10 @@ async function getOrCreateAssistant() {
   return assistantDetails;
 }
 
+// ***********************************************************
 // Configuración del chat y threads con OpenAi
+// Chat que devuelve una response
+// ***********************************************************
 app.post("/chat", authenticateToken, async (req, res) => {
   try {
     const { question, chatId, saveThread } = req.body;
@@ -196,6 +207,7 @@ app.post("/chat", authenticateToken, async (req, res) => {
   }
 });
 
+// Chat audio open ai tts
 app.post("/chat/audio", authenticateToken, async (req, res) => {
   try {
     const { question, chatId, saveThread, voice = "alloy" } = req.body;
@@ -272,85 +284,6 @@ app.post("/chat/audio", authenticateToken, async (req, res) => {
     res.status(500).send("An error occurred");
   }
 });
-
-
-// Chat audio elevenlabs
-// Configuración del chat con ElevenLabs TTS
-// app.post("/chat/audio-eleven", authenticateToken, async (req, res) => {
-//   try {
-//     const { question, chatId, saveThread, voice = "JBFqnCBsd6RMkjVDRZzb" } = req.body;
-
-//     // Crear un prompt directamente con la pregunta del usuario
-//     const fullPrompt = `Sos un experto en el área de la psicología y salud mental. Vas a guiar al usuario para que pueda resolver sus problemas y lo vas a acompañar en un proceso de sanación. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar sí o sí que las personas se hagan daño a sí mismas. Es MUY IMPORTANTE que respondas de una manera concisa. No respondas prolongadamente. Ahora, con base en esto, responde la siguiente pregunta: ${question}`;
-
-//     // Crear un thread y obtener la respuesta
-//     const thread = await openai.beta.threads.create();
-//     await openai.beta.threads.messages.create(thread.id, {
-//       role: "user",
-//       content: fullPrompt,
-//     });
-
-//     const run = await openai.beta.threads.runs.create(thread.id, {
-//       assistant_id: (await getOrCreateAssistant()).assistantId,
-//     });
-
-//     let runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-
-//     // Polling para verificar si la respuesta está lista
-//     while (runStatus.status !== "completed") {
-//       await new Promise((resolve) => setTimeout(resolve, 1000));
-//       runStatus = await openai.beta.threads.runs.retrieve(thread.id, run.id);
-//     }
-
-//     const messages = await openai.beta.threads.messages.list(thread.id);
-//     const lastMessageForRun = messages.data
-//       .filter(
-//         (message) => message.run_id === run.id && message.role === "assistant"
-//       )
-//       .pop();
-
-//     if (!lastMessageForRun) {
-//       return res.status(500).send("No response received from the assistant.");
-//     }
-
-//     const textResponse = lastMessageForRun.content[0].text.value;
-
-//     // Guardar el hilo si es necesario
-//     if (saveThread) {
-//       await saveMessageToChat(chatId, question, textResponse);
-//     }
-
-//     // Usar ElevenLabs para generar el audio en tiempo real
-//     const { ElevenLabsClient } = require("elevenlabs");
-//     const client = new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY });
-
-//     res.set({
-//       "Content-Type": "audio/mpeg",
-//       "Transfer-Encoding": "chunked",
-//     });
-
-//     const stream = await client.textToSpeech.convertAsStream(voice, {
-//       output_format: "mp3_44100_128",
-//       text: textResponse,
-//       model_id: "eleven_multilingual_v2",
-//     });
-
-//     // Transmitir los datos de audio en tiempo real
-//     stream.pipe(res);
-
-//     stream.on("end", () => {
-//       res.end();
-//     });
-
-//     stream.on("error", (error) => {
-//       console.error("Error durante el streaming de audio:", error);
-//       res.status(500).send("Error during audio streaming.");
-//     });
-//   } catch (error) {
-//     console.error("Error al procesar audio:", error);
-//     res.status(500).send("An error occurred");
-//   }
-// });
 
 // Chat audio elevenlabs + respuesta en texto
 app.post("/chat/audio-eleven", authenticateToken, async (req, res) => {
@@ -433,9 +366,11 @@ app.post("/chat/audio-eleven", authenticateToken, async (req, res) => {
   }
 });
 
-
-
-// BD
+// ***********************************************************
+// ***********************************************************
+// Guardo chats en BD
+// ***********************************************************
+// ***********************************************************
 // Base de datos propia con los chats y threads dentro de los mismos
 async function saveMessageToChat(chatId, userMessage, assistantResponse) {
   try {
