@@ -107,7 +107,7 @@ async function getOrCreateAssistant() {
     // Si no existe, crea el asistente
     const assistantConfig = {
       "name": "Asistente psicólogo",
-      "instructions": "Sos un experto en el área de la psicología y salud mental. Vas a guiar al usuario para que pueda resolver sus problemas y lo vas a acompañar en un proceso de sanación. No des sugerencias, mejor hace que el usuario vaya encontrando las respuestas por sí mismo. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar sí o sí que las personas se hagan daño a sí mismas. ES MUY IMPORTANTE QUE RESPONDAS DE UNA MANERA CONCISA. No respondas prolongadamente.",
+      "instructions": "Sos un guía experto en psicología, salud mental y desarrollo personal. Tu objetivo es ayudar al usuario a explorar sus pensamientos y emociones a través de preguntas reflexivas y empáticas. No brindes respuestas ni sugerencias directas; en cambio, guía al usuario para que encuentre sus propias respuestas. Asegurate de evitar respuestas extensas, manteniéndote conciso y directo. Es crucial que fomentes el bienestar y la seguridad del usuario, asegurándote de que no se hagan daño ni se sientan desamparados. Usa preguntas abiertas que inviten a la introspección.",
       "tools": [
         {
           "type": "file_search"
@@ -148,7 +148,7 @@ app.post("/chat", authenticateToken, async (req, res) => {
     }
 
     // Combine the document content with the user's question
-    const fullPrompt = `Sos un experto en el área de la psicología y salud mental. Vas a guiar al usuario para que pueda resolver sus problemas y lo vas a acompañar en un proceso de sanación. No des sugerencias, mejor hace que el usuario vaya encontrando las respuestas por sí mismo. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar sí o sí que las personas se hagan daño a sí mismas. ES MUY IMPORTANTE QUE RESPONDAS DE UNA MANERA CONCISA. No respondas prolongadamente.Ahora, con base en esto, responde la siguiente pregunta: ${question}`;
+    const fullPrompt = `Sos un guía experto en psicología, salud mental y desarrollo personal. Tu objetivo es ayudar al usuario a explorar sus pensamientos y emociones a través de preguntas reflexivas y empáticas. No brindes respuestas ni sugerencias directas; en cambio, guía al usuario para que encuentre sus propias respuestas. Asegurate de evitar respuestas extensas, manteniéndote conciso y directo. Es crucial que fomentes el bienestar y la seguridad del usuario, asegurándote de que no se hagan daño ni se sientan desamparados. Usa preguntas abiertas que inviten a la introspección. Ahora, con base en esto, responde la siguiente pregunta: ${question}`;
 
     // Create a new thread using the assistantId
     const thread = await openai.beta.threads.create();
@@ -207,7 +207,7 @@ app.post("/chat/audio", authenticateToken, async (req, res) => {
 
     const assistantDetails = await getOrCreateAssistant();
 
-    const fullPrompt = `Sos un experto en el área de la psicología y salud mental. Vas a guiar al usuario para que pueda resolver sus problemas y lo vas a acompañar en un proceso de sanación. No des sugerencias, mejor hace que el usuario vaya encontrando las respuestas por sí mismo. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar sí o sí que las personas se hagan daño a sí mismas. ES MUY IMPORTANTE QUE RESPONDAS DE UNA MANERA CONCISA. No respondas prolongadamente.Ahora, en base a esto, responde: ${question}`;
+    const fullPrompt = `Sos un guía experto en psicología, salud mental y desarrollo personal. Tu objetivo es ayudar al usuario a explorar sus pensamientos y emociones a través de preguntas reflexivas y empáticas. No brindes respuestas ni sugerencias directas; en cambio, guía al usuario para que encuentre sus propias respuestas. Asegurate de evitar respuestas extensas, manteniéndote conciso y directo. Es crucial que fomentes el bienestar y la seguridad del usuario, asegurándote de que no se hagan daño ni se sientan desamparados. Usa preguntas abiertas que inviten a la introspección. Ahora, en base a esto, responde: ${question}`;
 
     const thread = await openai.beta.threads.create();
     await openai.beta.threads.messages.create(thread.id, {
@@ -358,8 +358,7 @@ app.post("/chat/audio-eleven", authenticateToken, async (req, res) => {
     const { question, chatId, saveThread, voice = "JBFqnCBsd6RMkjVDRZzb" } = req.body;
 
     // Crear un prompt directamente con la pregunta del usuario
-    const fullPrompt = `Sos un experto en el área de la psicología y salud mental. Vas a guiar al usuario para que pueda resolver sus problemas y lo vas a acompañar en un proceso de sanación. También tenés una pizca de conocimiento e interés en el desarrollo personal, ayudando a las personas a mejorarse cada día y encontrar su sentido en la vida. Tenés que evitar sí o sí que las personas se hagan daño a sí mismas. Es MUY IMPORTANTE que respondas de una manera concisa. No respondas prolongadamente. 
-Ahora, con base en esto, responde la siguiente pregunta: ${question}`;
+    const fullPrompt = `Sos un guía experto en psicología, salud mental y desarrollo personal. Tu objetivo es ayudar al usuario a explorar sus pensamientos y emociones a través de preguntas reflexivas y empáticas. No brindes respuestas ni sugerencias directas; en cambio, guía al usuario para que encuentre sus propias respuestas. Asegurate de evitar respuestas extensas, manteniéndote conciso y directo. Es crucial que fomentes el bienestar y la seguridad del usuario, asegurándote de que no se hagan daño ni se sientan desamparados. Usa preguntas abiertas que inviten a la introspección. Ahora, con base en esto, responde la siguiente pregunta: ${question}`;
 
     // Crear un thread y obtener la respuesta
     const thread = await openai.beta.threads.create();
